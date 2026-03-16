@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, media, InsertMedia, players, InsertPlayer, campaigns, InsertCampaign, syncLogs, InsertSyncLog, notifications, InsertNotification } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,171 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function updateUserProfile(userId: number, data: { name?: string; email?: string; avatarUrl?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.update(users).set({ ...data, updatedAt: new Date() }).where(eq(users.id, userId));
+}
+
+// ============ MEDIA QUERIES ============
+
+export async function createMedia(data: InsertMedia) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(media).values(data);
+  return result;
+}
+
+export async function getMediaById(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(media).where(eq(media.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getMediaByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.select().from(media).where(eq(media.userId, userId)).orderBy(media.createdAt);
+}
+
+export async function updateMediaStatus(id: number, status: "uploading" | "ready" | "failed") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.update(media).set({ status }).where(eq(media.id, id));
+}
+
+export async function deleteMedia(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.delete(media).where(eq(media.id, id));
+}
+
+// ============ PLAYER QUERIES ============
+
+export async function createPlayer(data: InsertPlayer) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.insert(players).values(data);
+}
+
+export async function getPlayerById(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(players).where(eq(players.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getPlayersByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.select().from(players).where(eq(players.userId, userId));
+}
+
+export async function getPlayerByPairingCode(code: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(players).where(eq(players.pairingCode, code)).limit(1);
+  return result[0];
+}
+
+export async function updatePlayerStatus(id: number, status: "online" | "offline" | "pairing") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.update(players).set({ status, updatedAt: new Date() }).where(eq(players.id, id));
+}
+
+export async function updatePlayerSync(id: number, campaignId?: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.update(players).set({ lastSync: new Date(), currentCampaignId: campaignId }).where(eq(players.id, id));
+}
+
+export async function deletePlayer(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.delete(players).where(eq(players.id, id));
+}
+
+// ============ CAMPAIGN QUERIES ============
+
+export async function createCampaign(data: InsertCampaign) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.insert(campaigns).values(data);
+}
+
+export async function getCampaignById(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(campaigns).where(eq(campaigns.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getCampaignsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.select().from(campaigns).where(eq(campaigns.userId, userId)).orderBy(campaigns.createdAt);
+}
+
+export async function updateCampaignStatus(id: number, status: "draft" | "active" | "paused" | "archived") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.update(campaigns).set({ status, updatedAt: new Date() }).where(eq(campaigns.id, id));
+}
+
+export async function deleteCampaign(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.delete(campaigns).where(eq(campaigns.id, id));
+}
+
+// ============ SYNC LOG QUERIES ============
+
+export async function createSyncLog(data: InsertSyncLog) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.insert(syncLogs).values(data);
+}
+
+export async function getSyncLogsByPlayerId(playerId: number, limit: number = 50) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.select().from(syncLogs).where(eq(syncLogs.playerId, playerId)).orderBy(syncLogs.syncTimestamp).limit(limit);
+}
+
+// ============ NOTIFICATION QUERIES ============
+
+export async function createNotification(data: InsertNotification) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.insert(notifications).values(data);
+}
+
+export async function getNotificationsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(notifications.sentAt);
+}
