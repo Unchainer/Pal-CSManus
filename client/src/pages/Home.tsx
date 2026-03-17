@@ -3,14 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 import { Tv, Upload, Radio, BarChart3, Zap, Shield, Play, Users, Clock } from "lucide-react";
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
+
   if (isAuthenticated) {
-    navigate("/dashboard");
     return null;
   }
 
